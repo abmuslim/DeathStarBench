@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - command:
-            - frontend
+            - go/bin/frontend
           image: teresaliuchang/hotel_demo:v1.7
           name: hotel-reserv-frontend
           ports:
