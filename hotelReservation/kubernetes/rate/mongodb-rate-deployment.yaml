@@ -35,7 +35,7 @@ spec:
             requests:
               cpu: 100m
             limits:
-              cpu: 1000m
+              cpu: 5000m
           volumeMounts:
             - mountPath: /data/db
               name: rate
@@ -43,5 +43,5 @@ spec:
       volumes:
         - name: rate
           persistentVolumeClaim:
-            claimName: rate-pvc
+            claimName: rate-pvc-hotel2
 status: {}

@@ -25,10 +25,12 @@ spec:
       labels:
         io.kompose.service: rate
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - command:
             - /go/bin/rate
-          image: deathstarbench/hotel-reservation:latest
+          image: abdullahmuzlim279/hotelreservation:latest
           name: hotel-reserv-rate
           ports:
             - containerPort: 8084
@@ -36,6 +38,6 @@ spec:
             requests:
               cpu: 100m
             limits:
-              cpu: 1000m
+              cpu: 5000m
       restartPolicy: Always
 status: {}

@@ -1,14 +1,14 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: rate-pv
+  name: rate-pv-hotel2
 spec:
   volumeMode: Filesystem
   accessModes:
     - ReadWriteOnce
   capacity:
-    storage: 1Gi
-  storageClassName: rate-storage
+    storage: 5Gi
+  storageClassName: rate-storage-hotel2
   hostPath:
-    path: /data/volumes/rate-pv   # Where all the hard drives are mounted
+    path: /data/volumes/rate-pv-hotel2   # Where all the hard drives are mounted
     type: DirectoryOrCreate

@@ -7,7 +7,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   capacity:
-    storage: 1Gi
+    storage: 5Gi
   storageClassName: reservation-storage
   hostPath:
     path: /data/volumes/reservation-pv   # Where all the hard drives are mounted
