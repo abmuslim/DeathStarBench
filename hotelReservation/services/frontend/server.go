@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"net/http"
 	"strconv"
+	   "time"                        // Added for time-related functions
+    "google.golang.org/grpc/keepalive" // Added for keepalive
 
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/dialer"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/registry"
@@ -29,6 +31,16 @@ var (
 	//go:embed static/*
 	content embed.FS
 )
+
+
+// KeepAlive configurations to reduce ping frequency
+var kaParams = keepalive.ClientParameters{
+	Time:                10 * time.Minute, // ping the server if it is idle for 10 minutes
+	Timeout:             20 * time.Second, // wait 20 seconds for the ping ack before considering the connection dead
+	PermitWithoutStream: true,             // send pings even without active streams, but only at specified intervals
+}
+
+
 
 // Server implements frontend service
 type Server struct {
@@ -192,22 +204,31 @@ func (s *Server) initReservation(name string) error {
 }
 
 func (s *Server) getGprcConn(name string) (*grpc.ClientConn, error) {
-	log.Info().Msg("get Grpc conn is :")
-	log.Info().Msg(s.KnativeDns)
-	log.Info().Msg(fmt.Sprintf("%s.%s", name, s.KnativeDns))
+    log.Info().Msg("Establishing gRPC connection")
+    log.Info().Msgf("Knative DNS: %s", s.KnativeDns)
 
-	if s.KnativeDns != "" {
-		return dialer.Dial(
-			fmt.Sprintf("consul://%s/%s.%s", s.ConsulAddr, name, s.KnativeDns),
-			dialer.WithTracer(s.Tracer))
-	} else {
-		return dialer.Dial(
-			fmt.Sprintf("consul://%s/%s", s.ConsulAddr, name),
-			dialer.WithTracer(s.Tracer),
-			dialer.WithBalancer(s.Registry.Client),
-		)
-	}
+    // Build the service address based on whether Knative DNS is available
+    var serviceAddress string
+    if s.KnativeDns != "" {
+        serviceAddress = fmt.Sprintf("consul://%s/%s.%s", s.ConsulAddr, name, s.KnativeDns)
+        return dialer.Dial(
+            serviceAddress,
+            dialer.WithTracer(s.Tracer),
+            dialer.WithDialOption(grpc.WithKeepaliveParams(kaParams)),
+            dialer.WithDialOption(grpc.WithInsecure()),
+        )
+    } else {
+        serviceAddress = fmt.Sprintf("consul://%s/%s", s.ConsulAddr, name)
+        return dialer.Dial(
+            serviceAddress,
+            dialer.WithTracer(s.Tracer),
+            dialer.WithBalancer(s.Registry.Client),
+            dialer.WithDialOption(grpc.WithKeepaliveParams(kaParams)),
+            dialer.WithDialOption(grpc.WithInsecure()),
+        )
+    }
 }
+
 
 func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
