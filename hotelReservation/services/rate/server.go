@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+    
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/registry"
 	pb "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/rate/proto"
@@ -22,6 +23,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+
+	"google.golang.org/grpc/status"
+    "google.golang.org/grpc/codes"
 )
 
 const name = "srv-rate"
@@ -93,14 +97,21 @@ func (s *Server) Shutdown() {
 func (s *Server) GetRates(ctx context.Context, req *pb.Request) (*pb.Result, error) {
 	res := new(pb.Result)
 
-	ratePlans := make(RatePlans, 0)
+    ratePlans := make(RatePlans, 0)
 
-	hotelIds := []string{}
-	rateMap := make(map[string]struct{})
-	for _, hotelID := range req.HotelIds {
-		hotelIds = append(hotelIds, hotelID)
-		rateMap[hotelID] = struct{}{}
-	}
+    hotelIds := []string{}
+    rateMap := make(map[string]struct{})
+    for _, hotelID := range req.HotelIds {
+        if isValidHotelID(hotelID) {
+            hotelIds = append(hotelIds, hotelID)
+            rateMap[hotelID] = struct{}{}
+        } else {
+            log.Warn().Msgf("Received invalid hotel ID: %s", hotelID)
+            // Optionally, you can return an error response
+            return nil, status.Errorf(codes.InvalidArgument, "Invalid hotel ID: %s", hotelID)
+        }
+    }
+
 	// first check memcached(get-multi)
 	memSpan, _ := opentracing.StartSpanFromContext(ctx, "memcached_get_multi_rate")
 	memSpan.SetTag("span.kind", "client")
@@ -111,7 +122,8 @@ func (s *Server) GetRates(ctx context.Context, req *pb.Request) (*pb.Result, err
 	var wg sync.WaitGroup
 	var mutex sync.Mutex
 	if err != nil && err != memcache.ErrCacheMiss {
-		log.Panic().Msgf("Memmcached error while trying to get hotel [id: %v]= %s", hotelIds, err)
+    log.Error().Msgf("Memcached error while trying to get hotel [id: %v]: %s", hotelIds, err)
+    return nil, status.Errorf(codes.Unavailable, "Unable to retrieve data from cache")
 	} else {
 		for hotelId, item := range resMap {
 			rateStrs := strings.Split(string(item.Value), "\n")
@@ -131,46 +143,47 @@ func (s *Server) GetRates(ctx context.Context, req *pb.Request) (*pb.Result, err
 		wg.Add(len(rateMap))
 		for hotelId := range rateMap {
 			go func(id string) {
+				defer wg.Done()
 				log.Trace().Msgf("memc miss, hotelId = %s", id)
 				log.Trace().Msg("memcached miss, set up mongo connection")
-
+			
 				mongoSpan, _ := opentracing.StartSpanFromContext(ctx, "mongo_rate")
 				mongoSpan.SetTag("span.kind", "client")
-
-				// memcached miss, set up mongo connection
+			
 				collection := s.MongoClient.Database("rate-db").Collection("inventory")
-				curr, err := collection.Find(context.TODO(), bson.D{})
+				filter := bson.D{{"hotelId", id}}
+				curr, err := collection.Find(context.TODO(), filter)
 				if err != nil {
-					log.Error().Msgf("Failed get rate data: ", err)
+					log.Error().Msgf("Failed to get rate data for hotelId [%v]: %v", id, err)
+					mongoSpan.Finish()
+					return
 				}
-
+			
 				tmpRatePlans := make(RatePlans, 0)
-				curr.All(context.TODO(), &tmpRatePlans)
+				err = curr.All(context.TODO(), &tmpRatePlans)
 				if err != nil {
-					log.Error().Msgf("Failed get rate data: ", err)
+					log.Error().Msgf("Failed to process rate data for hotelId [%v]: %v", id, err)
+					mongoSpan.Finish()
+					return
 				}
-
+			
 				mongoSpan.Finish()
-
+			
 				memcStr := ""
-				if err != nil {
-					log.Panic().Msgf("Tried to find hotelId [%v], but got error", id, err.Error())
-				} else {
-					for _, r := range tmpRatePlans {
-						mutex.Lock()
-						ratePlans = append(ratePlans, r)
-						mutex.Unlock()
-						rateJson, err := json.Marshal(r)
-						if err != nil {
-							log.Error().Msgf("Failed to marshal plan [Code: %v] with error: %s", r.Code, err)
-						}
-						memcStr = memcStr + string(rateJson) + "\n"
+				for _, r := range tmpRatePlans {
+					mutex.Lock()
+					ratePlans = append(ratePlans, r)
+					mutex.Unlock()
+					rateJson, err := json.Marshal(r)
+					if err != nil {
+						log.Error().Msgf("Failed to marshal plan [Code: %v] with error: %v", r.Code, err)
+						continue
 					}
+					memcStr += string(rateJson) + "\n"
 				}
-				go s.MemcClient.Set(&memcache.Item{Key: id, Value: []byte(memcStr)})
-
-				defer wg.Done()
+				s.MemcClient.Set(&memcache.Item{Key: id, Value: []byte(memcStr)})
 			}(hotelId)
+			
 		}
 	}
 	wg.Wait()
@@ -193,4 +206,14 @@ func (r RatePlans) Swap(i, j int) {
 
 func (r RatePlans) Less(i, j int) bool {
 	return r[i].RoomType.TotalRate > r[j].RoomType.TotalRate
+}
+
+// isValidHotelID checks if the hotel ID is a valid numeric string.
+func isValidHotelID(hotelID string) bool {
+    for _, c := range hotelID {
+        if c < '0' || c > '9' {
+            return false
+        }
+    }
+    return true
 }
