@@ -25,10 +25,12 @@ spec:
       labels:
         io.kompose.service: frontend
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - command:
             - /go/bin/frontend
-          image: deathstarbench/hotel-reservation:latest
+          image: abdullahmuzlim279/hotelreservation:latest
           name: hotel-reserv-frontend
           ports:
             - containerPort: 5000
@@ -36,6 +38,6 @@ spec:
             requests:
               cpu: 100m
             limits:
-              cpu: 1000m
+              cpu: 10000m
       restartPolicy: Always
 status: {}
