@@ -59,3 +59,10 @@ func Dial(name string, opts ...DialOption) (*grpc.ClientConn, error) {
 
 	return conn, nil
 }
+
+// WithDialOption allows adding a grpc.DialOption to the dialer
+func WithDialOption(opt grpc.DialOption) DialOption {
+    return func(name string) (grpc.DialOption, error) {
+        return opt, nil
+    }
+}
