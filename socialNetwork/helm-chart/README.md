@@ -123,6 +123,14 @@ $ helm install RELEASE_NAME HELM_CHART_REPO_PATH \
       memory: "128Mi"
       cpu: "2""
 ```
+```
+$ helm install sn . -n sn \
+  --set global.resources.requests.memory=64Mi \
+  --set global.resources.requests.cpu=250m \
+  --set global.resources.limits.memory=1Gi \
+  --set global.resources.limits.cpu=5
+```
+
 
 #### Setting resources for the `compose-post-service` container ####
 
