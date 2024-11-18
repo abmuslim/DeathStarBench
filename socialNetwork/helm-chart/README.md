@@ -130,7 +130,18 @@ $ helm install sn . -n sn \
   --set global.resources.limits.memory=1Gi \
   --set global.resources.limits.cpu=5
 ```
+Add this in the file /etc/systemd/system/containerd.service to the master and worker node.
 
+```
+[Service]
+LimitNOFILE=65536
+```
+run these commands
+
+```
+sudo systemctl daemon-reload
+sudo systemctl restart containerd
+```
 
 #### Setting resources for the `compose-post-service` container ####
 
