@@ -127,8 +127,8 @@ $ helm install RELEASE_NAME HELM_CHART_REPO_PATH \
 $ helm install sn . -n sn \
   --set global.resources.requests.memory=64Mi \
   --set global.resources.requests.cpu=250m \
-  --set global.resources.limits.memory=1Gi \
-  --set global.resources.limits.cpu=5
+  --set global.resources.limits.memory=8Gi \
+  --set global.resources.limits.cpu=8
 ```
 Add this in the file /etc/systemd/system/containerd.service to the master and worker node.
 
