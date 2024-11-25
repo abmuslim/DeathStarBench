@@ -142,7 +142,19 @@ run these commands
 sudo systemctl daemon-reload
 sudo systemctl restart containerd
 ```
-
+### Setting up prometheus for jaeger traces monitoring ###
+Run this command
+```
+kubectl edit configmap prometheus-server -n <namespace>
+```
+and add these lines in a section scrape_configs
+```
+scrape_configs:
+  - job_name: "jaeger"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["<jaeger-host>:14269"] # Replace with Jaeger's metrics endpoint
+```
 #### Setting resources for the `compose-post-service` container ####
 
 ```
