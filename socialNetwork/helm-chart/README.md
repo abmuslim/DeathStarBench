@@ -130,7 +130,7 @@ $ helm install sn . -n sn \
   --set global.resources.limits.memory=8Gi \
   --set global.resources.limits.cpu=8
 ```
-Add this in the file /etc/systemd/system/containerd.service to the master and worker node.
+Add this in the file /etc/systemd/system/containerd.service to the master and worker node if your container runtime is "Containerd" in case of different, update the service file of it to have more LIMITNOFILE variable.
 
 ```
 [Service]
