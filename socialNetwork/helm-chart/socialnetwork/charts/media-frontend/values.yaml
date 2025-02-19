@@ -9,21 +9,40 @@ container:
   imageVersion: xenial
   name: media-frontend
   ports: 
-  - containerPort: 8081
+    - containerPort: 8081
   env:
-  - name: fqdn_suffix
-    value: ".{{ .Release.Namespace }}.svc.cluster.local"
+    - name: fqdn_suffix
+      value: ".{{ .Release.Namespace }}.svc.cluster.local"
   volumeMounts:
     - name: lua-scripts
       mountPath: /usr/local/openresty/nginx/lua-scripts
+  securityContext:
+    privileged: true
+    capabilities:
+      add:
+        - "NET_ADMIN"
+        - "SYS_RESOURCE"
+
+securityContext:
+  sysctls:
+    - name: "net.core.somaxconn"
+      value: "65535"
+    - name: "net.ipv4.tcp_max_syn_backlog"
+      value: "65535"
+    - name: "net.ipv4.ip_local_port_range"
+      value: "1024 65535"
+    - name: "net.ipv4.tcp_tw_reuse"
+      value: "1"
+    - name: "net.ipv4.tcp_fin_timeout"
+      value: "10"
 
 initContainer:
   image: alpine/git
   imageVersion: latest
   name: alpine-container
   volumeMounts:
-  - name: lua-scripts
-    mountPath: /lua-scripts
+    - name: lua-scripts
+      mountPath: /lua-scripts
   command: "/bin/sh" 
   args: ["-c", "git clone https://github.com/dimoibiehg/DeathStarBench.git /DeathStarBench &&
             cp -r /DeathStarBench/socialNetwork/media-frontend/lua-scripts/* /lua-scripts/"]
@@ -43,3 +62,4 @@ configMaps:
   - name: service-config.json
     mountPath: /social-network-microservices/config/service-config.json
     value: service-config
+

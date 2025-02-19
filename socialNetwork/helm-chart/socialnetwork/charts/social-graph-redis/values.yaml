@@ -6,14 +6,34 @@ ports:
 
 container:
   args: 
-  - /social-network-microservices/config/redis.conf
+    - /social-network-microservices/config/redis.conf
   image: library/redis
   imageVersion: 6.2.4
   name: social-graph-redis
   ports: 
-  - containerPort: 6379
+    - containerPort: 6379
+  securityContext:
+    privileged: true
+    capabilities:
+      add:
+        - "NET_ADMIN"
+        - "SYS_RESOURCE"
+
+securityContext:
+  sysctls:
+    - name: "net.core.somaxconn"
+      value: "65535"
+    - name: "net.ipv4.tcp_max_syn_backlog"
+      value: "65535"
+    - name: "net.ipv4.ip_local_port_range"
+      value: "1024 65535"
+    - name: "net.ipv4.tcp_tw_reuse"
+      value: "1"
+    - name: "net.ipv4.tcp_fin_timeout"
+      value: "10"
 
 configMaps:
   - name: redis.conf
     mountPath: /social-network-microservices/config/redis.conf
     value: redis
+

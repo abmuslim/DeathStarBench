@@ -1,4 +1,5 @@
-global: 
+global:
+  fqdn_suffix: ".svc.cluster.local" 
   hpa:
     enabled: false
     minReplicas: 1
@@ -7,11 +8,11 @@ global:
     targetCPUUtilizationPercentage: '60'
   resources:
     limits:
-      cpu: 100m
-      memory: 128Mi
+      cpu: "8"
+      memory: 30Gi
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 250m
+      memory: 256Mi
   replicas: 1
   imagePullPolicy: "IfNotPresent"
   restartPolicy: Always
@@ -50,9 +51,35 @@ global:
     queueSize: 1000000
     bufferFlushInterval: 10
     samplerType: probabilistic
-    samplerParam: 0.1
+    samplerParam: 0.01
     disabled: false
     logSpans: false
+  securityContext:  
+    runAsUser: 0
+    allowPrivilegeEscalation: true
+    capabilities:
+      add:
+        - "SYS_RESOURCE"  # Allow setting ulimit
+    privileged: true
+  
+  extraConfig:
+    sysctls:
+      fs.file-max: "2097152"  # Increase max file descriptors
+      net.core.somaxconn: "65535"  # Allow high connection backlog
+      net.ipv4.tcp_max_syn_backlog: "65535"  # Avoid SYN flood issues
+      net.ipv4.ip_local_port_range: "1024 65535"  # Increase available ports
+      net.core.rmem_max: "16777216"  # Increase TCP receive buffer
+      net.core.wmem_max: "16777216"  # Increase TCP send buffer
+      net.core.optmem_max: "16777216"
+      net.ipv4.tcp_rmem: "4096 87380 16777216"
+      net.ipv4.tcp_wmem: "4096 87380 16777216"
+      net.ipv4.tcp_max_tw_buckets: "2000000"  # Increase time-wait buckets
+      net.ipv4.tcp_tw_reuse: "1"  # Allow fast reuse of TIME_WAIT sockets
+      net.ipv4.tcp_fin_timeout: "10"  # Reduce FIN_WAIT timeout
+      net.ipv4.tcp_keepalive_time: "120"
+      net.ipv4.tcp_keepalive_intvl: "30"
+      net.ipv4.tcp_keepalive_probes: "5"
+      net.ipv4.tcp_syncookies: "1"  # Enable SYN cookies to handle DDoS
 
 mongodb-sharded:
   fullnameOverride: mongodb-sharded
@@ -72,8 +99,6 @@ mcrouter:
 redis-cluster:
   usePassword: false
   redis:
-    # default readiness / liveness probes are causing issues, rising timeouts/delays might help
-    # cluster health check will be handled by post-commit hook
     readinessProbe:
       enabled: false
     livenessProbe:
@@ -90,3 +115,4 @@ redis:
     persistence:
       enabled: false
     replicaCount: 6
+

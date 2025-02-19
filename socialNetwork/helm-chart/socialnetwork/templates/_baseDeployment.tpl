@@ -5,6 +5,7 @@ metadata:
   labels:
     service: {{ .Values.name }}
   name: {{ .Values.name }}
+  namespace: {{ .Values.namespace | default "sn" }}
 spec: 
   replicas: {{ .Values.replicas | default .Values.global.replicas }}
   selector:
@@ -16,12 +17,20 @@ spec:
         service: {{ .Values.name }}
         app: {{ .Values.name }}
     spec:
+      securityContext:
+        {{- toYaml (.Values.securityContext | default dict) | nindent 8 }}  # ✅ Pod-level securityContext
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 6 }}
+      {{- end }}
       {{- if .Values.nodeName}}
       nodeName: {{ .Values.nodeName }}
       {{ end }}
       containers:
       {{- with .Values.container }}
       - name: "{{ .name }}"
+        securityContext:
+          {{- toYaml (.securityContext | default dict) | nindent 10 }}  # ✅ This now correctly applies the container-level security context
         image: {{ .dockerRegistry | default $.Values.global.dockerRegistry }}/{{ .image }}:{{ .imageVersion | default $.Values.global.defaultImageVersion }}
         imagePullPolicy: {{ .imagePullPolicy | default $.Values.global.imagePullPolicy }}
         ports:
@@ -79,3 +88,4 @@ spec:
 
 {{ include "socialnetwork.templates.baseHPA" . }}
 {{- end}}
+

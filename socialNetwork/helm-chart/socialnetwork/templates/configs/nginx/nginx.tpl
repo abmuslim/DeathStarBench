@@ -12,7 +12,7 @@ worker_processes  auto;
 # is greater than the total connections between the client and Nginx. 
 events {
   use epoll;
-  worker_connections  1024;
+  worker_connections  1000000;
 }
 
 env fqdn_suffix;
@@ -25,9 +25,9 @@ http {
   include       mime.types;
   default_type  application/octet-stream;
 
-  proxy_read_timeout 5000;
-  proxy_connect_timeout 5000;
-  proxy_send_timeout 5000;
+  proxy_read_timeout 2000;
+  proxy_connect_timeout 2000;
+  proxy_send_timeout 2000;
   
   log_format main '$remote_addr - $remote_user [$time_local] "$request"'
                   '$status $body_bytes_sent "$http_referer" '
@@ -42,7 +42,7 @@ http {
   # the duration of your experiment and keepalive_requests
   # is greateer than the total number of requests sent from
   # the workload generator
-  keepalive_timeout  120s;
+  keepalive_timeout  3600s;
   keepalive_requests 100000;
 
   # Docker default hostname resolver. Set valid timeout to prevent unlimited
@@ -52,7 +52,7 @@ http {
 
   lua_package_path '/usr/local/openresty/nginx/lua-scripts/?.lua;/usr/local/openresty/luajit/share/lua/5.1/?.lua;;';
 
-  lua_shared_dict config 32k;
+  lua_shared_dict config 10m;
 
   init_by_lua_block {
     local bridge_tracer = require "opentracing_bridge_tracer"

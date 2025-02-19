@@ -6,15 +6,36 @@ ports:
 
 container:
   args: 
-  - --config
-  - /social-network-microservices/config/mongod.conf
+    - --config
+    - /social-network-microservices/config/mongod.conf
+    - --replSet=rs0
   image: library/mongo
   imageVersion: 4.4.6
   name: post-storage-mongodb
   ports: 
-  - containerPort: 27017
+    - containerPort: 27017
+  securityContext:
+    privileged: true
+    capabilities:
+      add:
+        - "NET_ADMIN"
+        - "SYS_RESOURCE"
+
+securityContext:
+  sysctls:
+    - name: "net.core.somaxconn"
+      value: "65535"
+    - name: "net.ipv4.tcp_max_syn_backlog"
+      value: "65535"
+    - name: "net.ipv4.ip_local_port_range"
+      value: "1024 65535"
+    - name: "net.ipv4.tcp_tw_reuse"
+      value: "1"
+    - name: "net.ipv4.tcp_fin_timeout"
+      value: "10"
 
 configMaps:
   - name: mongod.conf
     mountPath: /social-network-microservices/config/mongod.conf
     value: mongod
+

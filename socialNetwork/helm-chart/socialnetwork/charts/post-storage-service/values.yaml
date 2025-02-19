@@ -9,7 +9,26 @@ container:
   image: deathstarbench/social-network-microservices
   name: post-storage-service
   ports: 
-  - containerPort: 9090
+    - containerPort: 9090
+  securityContext:
+    privileged: true
+    capabilities:
+      add:
+        - "NET_ADMIN"
+        - "SYS_RESOURCE"
+
+securityContext:
+  sysctls:
+    - name: "net.core.somaxconn"
+      value: "65535"
+    - name: "net.ipv4.tcp_max_syn_backlog"
+      value: "65535"
+    - name: "net.ipv4.ip_local_port_range"
+      value: "1024 65535"
+    - name: "net.ipv4.tcp_tw_reuse"
+      value: "1"
+    - name: "net.ipv4.tcp_fin_timeout"
+      value: "10"
 
 configMaps:
   - name: jaeger-config.yml
@@ -19,3 +38,4 @@ configMaps:
   - name: service-config.json
     mountPath: /social-network-microservices/config/service-config.json
     value: service-config
+

@@ -1,14 +1,14 @@
 {{- define "socialnetwork.templates.media-service.nginx.conf"  }}
 # Checklist: Make sure that worker_processes == #cores you gave to
 # nginx process
-worker_processes  16;
+worker_processes  auto;
 
 # error_log  logs/error.log;
 
 # Checklist: Make sure that worker_connections * worker_processes
 # is greater than the total connections between the client and Nginx.
 events {
-  worker_connections  1024;
+  worker_connections  1000000;
 }
 
 env fqdn_suffix;
@@ -30,7 +30,7 @@ http {
   # the duration of your experiment and keepalive_requests
   # is greateer than the total number of requests sent from
   # the workload generator
-  keepalive_timeout  120s;
+  keepalive_timeout  60s;
   keepalive_requests 100000;
 
   # Docker default hostname resolver
@@ -38,7 +38,7 @@ http {
 
   lua_package_path '/usr/local/openresty/nginx/lua-scripts/?.lua;/usr/local/openresty/luajit/share/lua/5.1/?.lua;;';
 
-  lua_shared_dict config 32k;
+  lua_shared_dict config 10m;
 
   init_by_lua_block {
     local upload = require "resty.upload"
@@ -58,7 +58,7 @@ http {
     # error_log off;
 
     client_max_body_size 100M;
-    client_body_buffer_size 100M;
+    client_body_buffer_size 10M;
 
     # Checklist: Make sure that the location here is consistent
     # with the location you specified in wrk2.

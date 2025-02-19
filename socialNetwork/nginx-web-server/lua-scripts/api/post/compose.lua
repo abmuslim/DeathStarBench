@@ -19,7 +19,8 @@ function _M.ComposePost()
   local social_network_ComposePostService = require "social_network_ComposePostService"
   local ComposePostServiceClient = social_network_ComposePostService.ComposePostServiceClient
 
-  GenericObjectPool:setMaxTotal(512)
+  GenericObjectPool:setMaxTotal(15000)
+  GenericObjectPool:setmaxIdleTime(5000)
 
   local req_id = tonumber(string.sub(ngx.var.request_id, 0, 15), 16)
   local tracer = bridge_tracer.new_from_global()

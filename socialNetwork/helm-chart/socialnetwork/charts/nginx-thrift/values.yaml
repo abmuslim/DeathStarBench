@@ -9,10 +9,10 @@ container:
   imageVersion: xenial
   name: nginx-thrift
   ports: 
-  - containerPort: 8080
+    - containerPort: 8080
   env:
-  - name: fqdn_suffix
-    value: ".{{ .Release.Namespace }}.svc.cluster.local"
+    - name: fqdn_suffix
+      value: ".{{ .Release.Namespace }}.svc.cluster.local"
   volumeMounts:
     - name: lua-scripts
       mountPath: /usr/local/openresty/nginx/lua-scripts
@@ -24,23 +24,41 @@ container:
       mountPath: /gen-lua
     - name: keys
       mountPath: /keys
+  securityContext:
+    privileged: true
+    capabilities:
+      add:
+        - "NET_ADMIN"
+        - "SYS_RESOURCE"
 
+securityContext:
+  sysctls:
+    - name: "net.core.somaxconn"
+      value: "65535"
+    - name: "net.ipv4.tcp_max_syn_backlog"
+      value: "65535"
+    - name: "net.ipv4.ip_local_port_range"
+      value: "1024 65535"
+    - name: "net.ipv4.tcp_tw_reuse"
+      value: "1"
+    - name: "net.ipv4.tcp_fin_timeout"
+      value: "10"
 
 initContainer:
   image: alpine/git
   imageVersion: latest
   name: alpine-container
   volumeMounts:
-  - name: lua-scripts
-    mountPath: /lua-scripts
-  - name: lua-thrift
-    mountPath: /lua-thrift
-  - name: pages
-    mountPath: /pages
-  - name: gen-lua
-    mountPath: /gen-lua
-  - name: keys
-    mountPath: /keys
+    - name: lua-scripts
+      mountPath: /lua-scripts
+    - name: lua-thrift
+      mountPath: /lua-thrift
+    - name: pages
+      mountPath: /pages
+    - name: gen-lua
+      mountPath: /gen-lua
+    - name: keys
+      mountPath: /keys
   command: "/bin/sh" 
   args: ["-c", "git clone https://github.com/dimoibiehg/DeathStarBench.git /DeathStarBench &&
             cp -r /DeathStarBench/socialNetwork/gen-lua/* /gen-lua/ &&
@@ -64,3 +82,4 @@ configMaps:
   - name: nginx.conf
     mountPath: /usr/local/openresty/nginx/conf/nginx.conf 
     value: nginx
+
