@@ -15,7 +15,6 @@
 -- specific language governing permissions and limitations
 -- under the License.
 
-
 local TTransport = require 'TTransport'
 local TTransportException = TTransport.TTransportException
 local TTransportBase = TTransport.TTransportBase
@@ -24,18 +23,20 @@ local ttype = Thrift.ttype
 local terror = Thrift.terror
 
 -- Use NGINX logging
+local ngx = require "ngx"  -- Ensure ngx module is loaded
 local ngx_log = ngx.log
 local ngx_ERR = ngx.ERR
+local ngx_WARN = ngx.WARN
 local ngx_INFO = ngx.INFO
 local ngx_DEBUG = ngx.DEBUG
 
 -- TSocketBase
 local TSocketBase = TTransportBase:new{
   __type = 'TSocketBase',
-  timeout = 300000,  -- Default timeout (30 seconds)
+  timeout = 300000,  -- Default timeout (5 minutes)
   host = 'localhost',
   port = 9090,
-  handle
+  handle = nil
 }
 
 function TSocketBase:close()
@@ -43,6 +44,8 @@ function TSocketBase:close()
     ngx_log(ngx_INFO, "[TSocket] Closing socket connection to " .. self.host .. ":" .. self.port)
     self.handle:close()
     self.handle = nil
+  else
+    ngx_log(ngx_WARN, "[TSocket] Close called, but handle is nil")
   end
 end
 
@@ -65,7 +68,7 @@ function TSocketBase:getSocketInfo()
 end
 
 function TSocketBase:setTimeout(timeout)
-  if timeout and ttype(timeout) == 'number' then
+  if timeout and type(timeout) == 'number' then
     if self.handle then
       ngx_log(ngx_INFO, "[TSocket] Setting timeout to " .. tostring(timeout) .. " ms")
       self.handle:settimeout(timeout)
@@ -73,6 +76,8 @@ function TSocketBase:setTimeout(timeout)
       ngx_log(ngx_WARN, "[TSocket] Timeout set but handle is nil")
     end
     self.timeout = timeout
+  else
+    ngx_log(ngx_ERR, "[TSocket] Invalid timeout value: " .. tostring(timeout))
   end
 end
 
@@ -84,10 +89,7 @@ local TSocket = TSocketBase:new{
 }
 
 function TSocket:isOpen()
-  if self.handle then
-    return true
-  end
-  return false
+  return self.handle ~= nil
 end
 
 function TSocket:open()
@@ -97,12 +99,13 @@ function TSocket:open()
     self.handle = ngx.socket.tcp()
     self.handle:settimeout(self.timeout)
   end
+
   local ok, err = self.handle:connect(self.host, self.port)
   if not ok then
-    ngx_log(ngx_ERR, "[TSocket] Connection failed to " .. self.host .. ":" .. self.port .. " (" .. err .. ")")
+    ngx_log(ngx_ERR, "[TSocket] Connection failed to " .. self.host .. ":" .. self.port .. " (" .. tostring(err) .. ")")
     terror(TTransportException:new{
       message = 'Could not connect to ' .. self.host .. ':' .. self.port
-        .. ' (' .. err .. ')'
+        .. ' (' .. tostring(err) .. ')'
     })
   else
     ngx_log(ngx_INFO, "[TSocket] Successfully connected to " .. self.host .. ":" .. self.port)
@@ -144,16 +147,16 @@ function TServerSocket:listen()
     self:close()
   end
 
-  local sock, err = luasocket.create(self.host, self.port)
-  if not err then
+  local sock, err = ngx.socket.tcp()
+  if sock then
     ngx_log(ngx_INFO, "[TServerSocket] Listening on " .. self.host .. ":" .. self.port)
     self.handle = sock
+    self.handle:settimeout(self.timeout)
+    self.handle:listen()
   else
     ngx_log(ngx_ERR, "[TServerSocket] Failed to listen: " .. tostring(err))
     terror(err)
   end
-  self.handle:settimeout(self.timeout)
-  self.handle:listen()
 end
 
 function TServerSocket:accept()
