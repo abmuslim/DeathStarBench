@@ -107,6 +107,8 @@ int main(int argc, char *argv[]) {
       server_socket,
       std::make_shared<TFramedTransportFactory>(),
       std::make_shared<TBinaryProtocolFactory>());
+   // Add concurrency limit here:
+  server.setConcurrentClientLimit(1000);
   LOG(info) << "Starting the compose-post-service server ...";
   server.serve();
 }

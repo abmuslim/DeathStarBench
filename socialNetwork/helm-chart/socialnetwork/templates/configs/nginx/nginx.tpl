@@ -12,7 +12,8 @@ error_log  logs/error.log;
 # is greater than the total connections between the client and Nginx. 
 events {
   use epoll;
-  worker_connections  1000000;
+  worker_connections  200000;
+  multi_accept on; # Accept multiple connections at once
 }
 
 env fqdn_suffix;
@@ -25,9 +26,9 @@ http {
   include       mime.types;
   default_type  application/octet-stream;
 
-  proxy_read_timeout 2000;
-  proxy_connect_timeout 2000;
-  proxy_send_timeout 2000;
+  proxy_read_timeout 300s;
+  proxy_connect_timeout 300s;
+  proxy_send_timeout 300s;
   
   log_format main '$remote_addr - $remote_user [$time_local] "$request"'
                   '$status $body_bytes_sent "$http_referer" '
