@@ -20,6 +20,8 @@ container:
 
 securityContext:
   sysctls:
+    - name: "net.core.somaxconn"
+      value: "65535"
     - name: "net.ipv4.tcp_max_syn_backlog"
       value: "65535"
     - name: "net.ipv4.ip_local_port_range"
