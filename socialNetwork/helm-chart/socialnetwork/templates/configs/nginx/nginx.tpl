@@ -24,10 +24,12 @@ http {
 
   include       mime.types;
   default_type  application/octet-stream;
-
-  proxy_read_timeout 2000;
-  proxy_connect_timeout 2000;
-  proxy_send_timeout 2000;
+   
+  client_header_timeout 300s;
+  client_body_timeout 300s; 
+  proxy_read_timeout 120s;
+  proxy_connect_timeout 120s;
+  proxy_send_timeout 120s;
   
   log_format main '$remote_addr - $remote_user [$time_local] "$request"'
                   '$status $body_bytes_sent "$http_referer" '
