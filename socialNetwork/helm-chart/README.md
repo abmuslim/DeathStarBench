@@ -39,20 +39,20 @@ For this repo to work you need to follow these step.
     net.ipv4.tcp_rmem = 4096 277750 134217728
     net.ipv4.tcp_wmem = 4096 277750 134217728
     net.core.netdev_max_backlog = 300000
-´´´
+   ´´´
 
 2. Create a Namespace "sn"
    ```
     kubectl create ns sn
    ´´´
 3. Create a secret
-   ```
+      ```
        kubectl create secret docker-registry regcred \
       --docker-username=yourdockerhubuser \
       --docker-password=yourdockerhubpassword \
       --docker-server=https://index.docker.io/v1/ \
       --docker-email=you@example.com
-   ´´´
+      ´´´
 
 
 
