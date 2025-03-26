@@ -1,3 +1,62 @@
+# Customization in this repo #
+For this repo to work you need to follow these step.
+1. Update the /etc/sysctl.conf file in each node of K8 cluster and add
+
+   ```
+    # Increase max number of open sockets
+    fs.file-max = 2097152
+    
+    # Increase TCP buffer sizes to handle high loads
+    
+    
+    # Increase backlog queue size to prevent connection drops
+    
+    # Allow higher number of open connections
+    net.ipv4.tcp_max_syn_backlog = 65535
+    
+    # Enable TCP Fast Open for better connection performance
+    net.ipv4.tcp_fastopen = 3
+    
+    # Reduce TIME_WAIT connections to avoid port exhaustion
+    net.ipv4.ip_local_port_range = 1024 65000  # More available ports
+    
+    # Enable connection tracking (important for firewalls/NAT)
+    net.netfilter.nf_conntrack_max = 1048576
+    
+    net.ipv4.tcp_max_syn_backlog = 65535
+    net.core.somaxconn = 65535
+    net.core.wmem_default = 8388608
+    net.core.rmem_default = 8388608
+    net.ipv4.tcp_sack = 1
+    net.ipv4.tcp_window_scaling = 1
+    net.ipv4.tcp_fin_timeout = 15
+    net.ipv4.tcp_keepalive_intvl = 30
+    net.ipv4.tcp_tw_reuse = 1
+    net.ipv4.tcp_moderate_rcvbuf = 1
+    net.core.rmem_max = 134217728
+    net.core.wmem_max = 134217728
+    net.ipv4.tcp_mem  = 134217728 134217728 134217728
+    net.ipv4.tcp_rmem = 4096 277750 134217728
+    net.ipv4.tcp_wmem = 4096 277750 134217728
+    net.core.netdev_max_backlog = 300000
+´´´
+
+2. Create a Namespace "sn"
+   ```
+    kubectl create ns sn
+   ´´´
+3. Create a secret
+   ```
+       kubectl create secret docker-registry regcred \
+      --docker-username=yourdockerhubuser \
+      --docker-password=yourdockerhubpassword \
+      --docker-server=https://index.docker.io/v1/ \
+      --docker-email=you@example.com
+   ´´´
+
+
+
+
 # Social Network Microservices Helm Chart #
 
 ## What is Helm Chart ##
