@@ -54,7 +54,16 @@ For this repo to work you need to follow these step.
       --docker-email=you@example.com
       ´´´
 
-
+4. Add below in this file sudo nano /etc/default/kubelet (make sure to change the IP to the node IP)
+    ```
+      KUBELET_EXTRA_ARGS="--node-ip=<x.x.x.x> --allowed-unsafe-sysctls=net.core.somaxconn,net.ipv4.tcp_max_syn_backlog,net.ipv4.ip_local_port_range,net.core.rmem_max,net.core.wmem_max,net.core.optmem_max,net.ipv4.tcp_rmem,net.ipv4.tcp_wmem,net.ipv4.tcp_max_tw_buckets,net.ipv4.tcp_tw_reuse,net.ipv4.tcp_fin_timeout,net.ipv4.tcp_keepalive_time,net.ipv4.tcp_keepalive_intvl,net.ipv4.tcp_keepalive_probes,net.ipv4.tcp_syncookies"
+   ´´´
+then run this command   
+   ```
+      sudo systemctl daemon-reexec
+      sudo systemctl daemon-reload
+      sudo systemctl restart kubelet
+   ´´´
 
 
 # Social Network Microservices Helm Chart #
