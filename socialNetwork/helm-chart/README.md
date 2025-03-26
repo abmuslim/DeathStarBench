@@ -46,25 +46,42 @@ For this repo to work you need to follow these step.
     kubectl create ns sn
    ´´´
 3. Create a secret
-      ```
+    ```
        kubectl create secret docker-registry regcred \
       --docker-username=yourdockerhubuser \
       --docker-password=yourdockerhubpassword \
       --docker-server=https://index.docker.io/v1/ \
       --docker-email=you@example.com
-      ´´´
+´´´
 
-4. Add below in this file sudo nano /etc/default/kubelet (make sure to change the IP to the node IP)
+5. Add below in this file sudo nano /etc/default/kubelet (make sure to change the IP to the node IP)
     ```
       KUBELET_EXTRA_ARGS="--node-ip=<x.x.x.x> --allowed-unsafe-sysctls=net.core.somaxconn,net.ipv4.tcp_max_syn_backlog,net.ipv4.ip_local_port_range,net.core.rmem_max,net.core.wmem_max,net.core.optmem_max,net.ipv4.tcp_rmem,net.ipv4.tcp_wmem,net.ipv4.tcp_max_tw_buckets,net.ipv4.tcp_tw_reuse,net.ipv4.tcp_fin_timeout,net.ipv4.tcp_keepalive_time,net.ipv4.tcp_keepalive_intvl,net.ipv4.tcp_keepalive_probes,net.ipv4.tcp_syncookies"
-   ´´´
+´´´
 then run this command   
-   ```
+    ```
       sudo systemctl daemon-reexec
       sudo systemctl daemon-reload
       sudo systemctl restart kubelet
-   ´´´
+     ```
+5. After deployment of pods and all in running condition, you have to run these 2 command
 
+   ```
+   for pod in $(kubectl get pods -n sn -l app | grep mongodb | awk '{print $1}'); do
+     echo " Initiating replica set in $pod"
+     kubectl exec -n sn "$pod" -- mongo --eval 'rs.initiate({_id:"rs0", members:[{_id:0,host:"localhost:27017"}]})' \
+       && echo "✅ rs.initiate() ran successfully for $pod" || echo "⚠️ Already initiated or failed: $pod"
+     echo ""
+   done
+```
+      
+   ```
+   for pod in $(kubectl get pods -n sn -l app | grep mongodb | awk '{print $1}'); do
+     echo "🔍 Checking rs.status() for $pod"
+     kubectl exec -n sn "$pod" -- mongo --eval 'rs.status().ok'
+     echo ""
+   done
+```
 
 # Social Network Microservices Helm Chart #
 
