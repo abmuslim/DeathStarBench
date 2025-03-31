@@ -24,6 +24,9 @@ container:
       mountPath: /gen-lua
     - name: keys
       mountPath: /keys
+    - name: nginx-logs
+      mountPath: /var/log/nginx
+
   securityContext:
     privileged: true
     capabilities:
@@ -31,7 +34,7 @@ container:
         - "NET_ADMIN"
         - "SYS_RESOURCE"
 
-securityContext:
+podSecurityContext:
   sysctls:
     - name: "net.core.somaxconn"
       value: "65535"
@@ -73,6 +76,20 @@ volumes:
   - name: gen-lua
   - name: lua-thrift
   - name: keys
+  - name: nginx-logs
+
+sidecarExporter:
+  enabled: true
+  name: log-exporter
+  image: abdullahmuzlim279/nginx-log-exporter
+  imageVersion: latest
+  ports:
+    - containerPort: 8000
+  imagePullPolicy: IfNotPresent
+  volumeMounts:
+    - name: nginx-logs
+      mountPath: /var/log/nginx
+
 
 configMaps:
   - name: jaeger-config.json

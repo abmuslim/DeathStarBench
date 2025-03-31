@@ -17,8 +17,8 @@ spec:
         service: {{ .Values.name }}
         app: {{ .Values.name }}
     spec:
-      securityContext:
-        {{- toYaml (.Values.securityContext | default dict) | nindent 8 }}  # ✅ Pod-level securityContext
+      podSecurityContext:
+        {{- toYaml (.Values.podSecurityContext | default dict) | nindent 8 }}  # ✅ Pod-level securityContext
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml .Values.imagePullSecrets | nindent 6 }}

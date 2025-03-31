@@ -17,7 +17,7 @@ container:
         - "NET_ADMIN"
         - "SYS_RESOURCE"
 
-securityContext:
+podSecurityContext:
   sysctls:
     - name: "net.core.somaxconn"
       value: "65535"

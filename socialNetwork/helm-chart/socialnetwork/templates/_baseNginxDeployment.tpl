@@ -62,6 +62,22 @@ spec:
         {{- end }}
         {{- end }}
       {{- end }}
+      
+      # Sidecar
+      {{- if and (hasKey $.Values "sidecarExporter") $.Values.sidecarExporter.enabled }}
+      - name: "{{ $.Values.sidecarExporter.name }}"
+        image: {{ $.Values.sidecarExporter.image }}:{{ $.Values.sidecarExporter.imageVersion }}
+        imagePullPolicy: {{ $.Values.sidecarExporter.imagePullPolicy | default "IfNotPresent" }}
+        ports:
+        {{- range $.Values.sidecarExporter.ports }}
+        - containerPort: {{ .containerPort }}
+        {{- end }}
+        volumeMounts:
+        {{- range $.Values.sidecarExporter.volumeMounts }}
+        - name: {{ .name }}
+          mountPath: {{ .mountPath }}
+        {{- end }}
+      {{- end }}
 
       initContainers:
       {{- with .Values.initContainer }}

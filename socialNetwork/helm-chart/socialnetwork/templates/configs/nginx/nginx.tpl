@@ -1,63 +1,51 @@
-{{- define "socialnetwork.templates.nginx.nginx.conf"  }}
+{{- define "socialnetwork.templates.nginx.nginx.conf" }}
 # Load the OpenTracing dynamic module.
 load_module modules/ngx_http_opentracing_module.so;
 
-# Checklist: Make sure that worker_processes == #cores you gave to
-# nginx process
-worker_processes  auto;
+worker_processes auto;
+error_log logs/error.log;
 
-error_log  logs/error.log;
-
-# Checklist: Make sure that worker_connections * worker_processes
-# is greater than the total connections between the client and Nginx. 
 events {
   use epoll;
-  worker_connections  200000;
-  multi_accept on; # Accept multiple connections at once
+  worker_connections 200000;
+  multi_accept on;
 }
 
 env fqdn_suffix;
 
 http {
-  # Load a vendor tracer
+  # Load tracer
   opentracing on;
   opentracing_load_tracer /usr/local/lib/libjaegertracing_plugin.so /usr/local/openresty/nginx/jaeger-config.json;
 
-  include       mime.types;
-  default_type  application/octet-stream;
+  include mime.types;
+  default_type application/octet-stream;
 
-   
   client_header_timeout 300s;
-  client_body_timeout 300s; 
-
-
+  client_body_timeout 300s;
   proxy_read_timeout 300s;
   proxy_connect_timeout 300s;
   proxy_send_timeout 300s;
-  
-  log_format main '$remote_addr - $remote_user [$time_local] "$request"'
-                  '$status $body_bytes_sent "$http_referer" '
-                  '"$http_user_agent" "$http_x_forwarded_for"';
-  # access_log  logs/access.log  main;
 
-  sendfile        on;
-  tcp_nopush      on;
-  tcp_nodelay     on;
+  # ✅ Custom log format with request time
+  log_format latency_log '$remote_addr - $remote_user [$time_local] '
+                         '"$request" $status $body_bytes_sent '
+                         '"$http_referer" "$http_user_agent" '
+                         'rt=$request_time uri=$request_uri';
 
-  # Checklist: Make sure the keepalive_timeout is greateer than
-  # the duration of your experiment and keepalive_requests
-  # is greateer than the total number of requests sent from
-  # the workload generator
-  keepalive_timeout  3600s;
+  # ✅ Enable access logging
+  access_log /var/log/nginx/access.log latency_log;
+
+  sendfile on;
+  tcp_nopush on;
+  tcp_nodelay on;
+
+  keepalive_timeout 3600s;
   keepalive_requests 100000;
 
-  # Docker default hostname resolver. Set valid timeout to prevent unlimited
-  # ttl for resolver caching.
-  # resolver 127.0.0.11 valid=10s ipv6=off;
   resolver {{ .Values.global.nginx.resolverName }} valid=10s ipv6=off;
 
   lua_package_path '/usr/local/openresty/nginx/lua-scripts/?.lua;/usr/local/openresty/luajit/share/lua/5.1/?.lua;;';
-
   lua_shared_dict config 10m;
 
   init_by_lua_block {
@@ -76,7 +64,6 @@ http {
     local social_network_UserService = require 'social_network_UserService'
     local UserServiceClient = social_network_UserService.UserServiceClient
 
-
     local config = ngx.shared.config;
     config:set("secret", "secret")
     config:set("cookie_ttl", 3600 * 24)
@@ -84,21 +71,15 @@ http {
   }
 
   server {
-
-    # Checklist: Set up the port that nginx listens to.
-    listen       8080 reuseport;
-    server_name  localhost;
-
-    # Checklist: Turn of the access_log and error_log if you
-    # don't need them.
-    access_log  off;
-    # error_log off;
+    listen 8080 reuseport;
+    server_name localhost;
 
     lua_need_request_body on;
 
-    # Used when SSL enabled
     lua_ssl_trusted_certificate /keys/CA.pem;
     lua_ssl_ciphers ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH;
+
+    access_log /var/log/nginx/access.log latency_log;
 
     # Checklist: Make sure that the location here is consistent
     # with the location you specified in wrk2.
@@ -449,7 +430,11 @@ http {
           client.Unfollow();
       ';
     }
-
+    
+    location /status {
+    stub_status;
+    allow all;
+    }
   }
 }
 {{- end }}
