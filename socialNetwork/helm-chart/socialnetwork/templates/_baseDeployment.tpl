@@ -17,8 +17,10 @@ spec:
         service: {{ .Values.name }}
         app: {{ .Values.name }}
     spec:
-      podSecurityContext:
-        {{- toYaml (.Values.podSecurityContext | default dict) | nindent 8 }}  # ✅ Pod-level securityContext
+      {{- if .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}  # ✅ Corrected indent
+      {{- end }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml .Values.imagePullSecrets | nindent 6 }}
@@ -30,7 +32,7 @@ spec:
       {{- with .Values.container }}
       - name: "{{ .name }}"
         securityContext:
-          {{- toYaml (.securityContext | default dict) | nindent 10 }}  # ✅ This now correctly applies the container-level security context
+          {{- toYaml (.securityContext | default dict) | nindent 10 }}
         image: {{ .dockerRegistry | default $.Values.global.dockerRegistry }}/{{ .image }}:{{ .imageVersion | default $.Values.global.defaultImageVersion }}
         imagePullPolicy: {{ .imagePullPolicy | default $.Values.global.imagePullPolicy }}
         ports:
@@ -87,5 +89,4 @@ spec:
       restartPolicy: {{ .Values.restartPolicy | default .Values.global.restartPolicy}}
 
 {{ include "socialnetwork.templates.baseHPA" . }}
-{{- end}}
-
+{{- end }}
