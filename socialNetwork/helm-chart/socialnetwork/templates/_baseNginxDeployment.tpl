@@ -16,10 +16,11 @@ spec:
         service: {{ .Values.name }}
         app: {{ .Values.name }}
     spec:
-      {{- if .Values.podSecurityContext }}
+      {{- with .Values.podSecurityContext }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 6 }}
-      {{- end }} 
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+ 
       containers:
       {{- with .Values.container }}
       - name: "{{ .name }}"
