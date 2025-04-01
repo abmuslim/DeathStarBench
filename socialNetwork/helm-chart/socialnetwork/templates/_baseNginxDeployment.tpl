@@ -15,7 +15,11 @@ spec:
       labels:
         service: {{ .Values.name }}
         app: {{ .Values.name }}
-    spec: 
+    spec:
+      {{- if .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 6 }}
+      {{- end }} 
       containers:
       {{- with .Values.container }}
       - name: "{{ .name }}"

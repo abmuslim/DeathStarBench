@@ -35,13 +35,17 @@ http {
 
   # ✅ Enable access logging
   access_log /var/log/nginx/access.log latency_log;
+  
+  open_file_cache max=100000 inactive=20s;
+  open_file_cache_valid 30s;
+  open_file_cache_errors off;
 
   sendfile on;
   tcp_nopush on;
   tcp_nodelay on;
 
-  keepalive_timeout 3600s;
-  keepalive_requests 100000;
+  keepalive_timeout 300s;
+  keepalive_requests 1000000;
 
   resolver {{ .Values.global.nginx.resolverName }} valid=10s ipv6=off;
 
@@ -80,6 +84,7 @@ http {
     lua_ssl_ciphers ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH;
 
     access_log /var/log/nginx/access.log latency_log;
+    
 
     # Checklist: Make sure that the location here is consistent
     # with the location you specified in wrk2.
