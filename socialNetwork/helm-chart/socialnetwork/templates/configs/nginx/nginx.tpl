@@ -21,11 +21,11 @@ http {
   include mime.types;
   default_type application/octet-stream;
 
-  client_header_timeout 300s;
-  client_body_timeout 300s;
-  proxy_read_timeout 300s;
-  proxy_connect_timeout 300s;
-  proxy_send_timeout 300s;
+  client_header_timeout 3000s;
+  client_body_timeout 3000s;
+  proxy_read_timeout 3000s;
+  proxy_connect_timeout 3000s;
+  proxy_send_timeout 3000s;
 
   # ✅ Custom log format with request time
   log_format latency_log '$remote_addr - $remote_user [$time_local] '
