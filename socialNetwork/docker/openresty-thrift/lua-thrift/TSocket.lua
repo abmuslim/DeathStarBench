@@ -33,7 +33,7 @@ local ngx_DEBUG = ngx.DEBUG
 -- TSocketBase
 local TSocketBase = TTransportBase:new{
   __type = 'TSocketBase',
-  timeout = 300000,  -- Default timeout (5 minutes)
+  timeout = 1000000,  -- Default timeout (5 minutes)
   host = 'localhost',
   port = 9090,
   handle = nil
@@ -94,6 +94,8 @@ end
 
 function TSocket:open()
   if not self.handle then
+    ngx_log(ngx.INFO, "[TSocket] FINAL TIMEOUT before socket open: " .. tostring(self.timeout))
+
     ngx_log(ngx_INFO, "[TSocket] Opening socket to " .. self.host .. ":" .. self.port .. " with timeout=" .. self.timeout)
     -- Use NGINX socket instead of the built-in lua socket
     self.handle = ngx.socket.tcp()

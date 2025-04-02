@@ -17,13 +17,8 @@ function _M.ComposePost()
   local social_network_ComposePostService = require "social_network_ComposePostService"
   local ComposePostServiceClient = social_network_ComposePostService.ComposePostServiceClient
 
-  GenericObjectPool:setMaxTotal(15000)
-  GenericObjectPool:setmaxIdleTime(5000)
-
-  local req_id = tonumber(string.sub(ngx.var.request_id, 0, 15), 16)
-  local tracer = bridge_tracer.new_from_global()
-  local parent_span_context = tracer:binary_extract(ngx.var.opentracing_binary_context)
-
+  GenericObjectPool:setMaxTotal(30000)
+  GenericObjectPool:setmaxIdleTime(15000)
 
   ngx.req.read_body()
   local post = ngx.req.get_post_args()
@@ -36,10 +31,24 @@ function _M.ComposePost()
     ngx.exit(ngx.HTTP_BAD_REQUEST)
   end
 
+  local req_id = tonumber(string.sub(ngx.var.request_id, 0, 15), 16)
+  ngx.log(ngx.INFO, "[ComposePost] Incoming request with req_id: ", req_id)
+
+  local tracer = bridge_tracer.new_from_global()
+  local parent_span_context = tracer:binary_extract(ngx.var.opentracing_binary_context)
+
+  local t1 = ngx.now()
+
+  local client
   local status, ret
 
-  local client = GenericObjectPool:connection(
-      ComposePostServiceClient, "compose-post-service" .. k8s_suffix, 9090)
+  -- Connect to ComposePostService
+  ngx.log(ngx.INFO, "[ComposePost] Getting connection to compose-post-service on port 9090")
+  client = GenericObjectPool:connection(
+    ComposePostServiceClient,
+    "compose-post-service" .. k8s_suffix,
+    9090
+  )
 
   local span = tracer:start_span("compose_post_client",
       { ["references"] = { { "child_of", parent_span_context } } })
@@ -56,6 +65,7 @@ function _M.ComposePost()
         req_id, post.username, tonumber(post.user_id), post.text,
         {}, {}, tonumber(post.post_type), carrier)
   end
+
   if not status then
     ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
     if (ret.message) then
@@ -65,11 +75,21 @@ function _M.ComposePost()
       ngx.say("compost_post failure: " .. ret)
       ngx.log(ngx.ERR, "compost_post failure: " .. ret)
     end
-    client.iprot.trans:close()
+    if client and client.iprot and client.iprot.trans then
+      client.iprot.trans:close()
+    end
     ngx.exit(ngx.status)
   end
 
-  GenericObjectPool:returnConnection(client)
+  -- Return connection to pool safely
+  local ok, err = pcall(GenericObjectPool.returnConnection, GenericObjectPool, client)
+  if not ok then
+    ngx.log(ngx.ERR, "Error returning connection to pool: ", err)
+  end
+
+  local t2 = ngx.now()
+  ngx.log(ngx.INFO, "[ComposePost] Compose request took " .. ((t2 - t1) * 1000) .. " ms")
+
   ngx.status = ngx.HTTP_OK
   ngx.say("Successfully upload post")
   span:finish()
@@ -77,3 +97,4 @@ function _M.ComposePost()
 end
 
 return _M
+

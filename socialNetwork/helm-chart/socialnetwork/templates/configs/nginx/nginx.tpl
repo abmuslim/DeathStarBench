@@ -44,7 +44,7 @@ http {
   tcp_nopush on;
   tcp_nodelay on;
 
-  keepalive_timeout 300s;
+  keepalive_timeout 3000s;
   keepalive_requests 1000000;
 
   resolver {{ .Values.global.nginx.resolverName }} valid=10s ipv6=off;
