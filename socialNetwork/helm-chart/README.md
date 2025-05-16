@@ -70,14 +70,14 @@ then run this command
    for pod in $(kubectl get pods -n sn -l app | grep mongodb | awk '{print $1}'); do
      echo " Initiating replica set in $pod"
      kubectl exec -n sn "$pod" -- mongo --eval 'rs.initiate({_id:"rs0", members:[{_id:0,host:"localhost:27017"}]})' \
-       && echo "✅ rs.initiate() ran successfully for $pod" || echo "⚠️ Already initiated or failed: $pod"
+       && echo " rs.initiate() ran successfully for $pod" || echo " Already initiated or failed: $pod"
      echo ""
    done
 ```
       
    ```
    for pod in $(kubectl get pods -n sn -l app | grep mongodb | awk '{print $1}'); do
-     echo "🔍 Checking rs.status() for $pod"
+     echo " Checking rs.status() for $pod"
      kubectl exec -n sn "$pod" -- mongo --eval 'rs.status().ok'
      echo ""
    done
