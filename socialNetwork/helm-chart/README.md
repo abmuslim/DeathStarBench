@@ -44,7 +44,7 @@ For this repo to work you need to follow these step.
 2. Create a Namespace "sn"
    ```
     kubectl create ns sn
-   ´´´
+   
 3. Create a secret
     ```
        kubectl create secret docker-registry regcred \
